@@ -1,19 +1,25 @@
 // BloodBond Backend - Blood stock routes
 // GET /api/stock - stock by blood group (public, Home page e dekhano jabe)
-// Mot stock = donation-er stock (BloodStock) + blood bank-er stock.
-// Dashboard theke random +/- update ar nai - stock bodlay sudhu
-// donation, issue, ar blood bank entry diye.
+// Proti group-e: bank-er bag (UnitsAvailable) + koyjon donor available.
+// Purano seed/demo number ar nai - BloodStock 0 kora hoyeche (file 07).
 
 const express = require('express');
 const { getPool } = require('../config/db');
 
 const router = express.Router();
 
-// Stock list - uses the view vw_TotalStockByGroup (Step 1, 06).
+// Stock list - mot bag (vw_TotalStockByGroup) + available donor count
+// (vw_AvailableDonorsByGroup). Donor search-er eki niyom:
+// sudhu Approved + Yes/NotSure donor-ra available.
 router.get('/', async (req, res) => {
   try {
     const pool = await getPool();
-    const result = await pool.request().query('SELECT * FROM vw_TotalStockByGroup ORDER BY BloodGroup');
+    const result = await pool.request().query(
+      'SELECT t.BloodGroup, t.UnitsAvailable, ISNULL(a.AvailableDonors, 0) AS AvailableDonors ' +
+      'FROM vw_TotalStockByGroup t ' +
+      'LEFT JOIN vw_AvailableDonorsByGroup a ON a.BloodGroup = t.BloodGroup ' +
+      'ORDER BY t.BloodGroup'
+    );
     res.json(result.recordset);
   } catch (err) {
     console.error('Stock error:', err.message);

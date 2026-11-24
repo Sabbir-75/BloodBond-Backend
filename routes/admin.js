@@ -26,7 +26,8 @@ router.get('/dashboard', async (req, res) => {
       '(SELECT COUNT(*) FROM Users WHERE Status = \'Pending\') AS PendingUsers, ' +
       '(SELECT COUNT(*) FROM BloodRequests WHERE Status = \'Pending\') AS PendingRequests, ' +
       '(SELECT COUNT(*) FROM Donations) AS TotalDonations, ' +
-      '(SELECT SUM(UnitsAvailable) FROM vw_TotalStockByGroup) AS TotalStockUnits'
+      '(SELECT SUM(UnitsAvailable) FROM vw_TotalStockByGroup) AS TotalStockUnits, ' +
+      '(SELECT COUNT(*) FROM BloodBanks) AS TotalBloodBanks'
     );
     res.json(result.recordset[0]);
   } catch (err) {
