@@ -89,6 +89,35 @@ router.get('/me', auth, requireRole('Donor'), async (req, res) => {
   }
 });
 
+// Update my own profile details (name, phone, occupation, address).
+// Blood group + email are NOT editable here: blood group is the medical
+// identity and email is the login identity. Donor can only change own row.
+router.put('/me', auth, requireRole('Donor'), async (req, res) => {
+  const { fullName, phone, occupation, division, district, upazila } = req.body;
+  if (!fullName || !fullName.trim()) {
+    return res.status(400).json({ message: 'Full name lagbe.' });
+  }
+  try {
+    const pool = await getPool();
+    await pool.request()
+      .input('UserID', sql.Int, req.user.userId)
+      .input('FullName', sql.NVarChar(100), fullName.trim())
+      .input('Phone', sql.NVarChar(20), phone || null)
+      .input('Occupation', sql.NVarChar(50), occupation || null)
+      .input('Division', sql.NVarChar(50), division || null)
+      .input('District', sql.NVarChar(100), district || null)
+      .input('Upazila', sql.NVarChar(100), upazila || null)
+      .query(
+        'UPDATE Users SET FullName = @FullName, Phone = @Phone, Occupation = @Occupation, ' +
+        'Division = @Division, District = @District, Upazila = @Upazila WHERE UserID = @UserID'
+      );
+    res.json({ message: 'Profile update hoyeche.' });
+  } catch (err) {
+    console.error('Donor profile update error:', err.message);
+    res.status(500).json({ message: 'Profile update holo na.' });
+  }
+});
+
 // Update my own status - Yes / No / NotSure + last donation date.
 // After donation: status No + date. 90 din por fn_IsDonorEligible auto Yes kore.
 router.put('/status', auth, requireRole('Donor'), async (req, res) => {
