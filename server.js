@@ -14,6 +14,7 @@ const donorRoutes = require('./routes/donors');
 const requestRoutes = require('./routes/requests');
 const stockRoutes = require('./routes/stock');
 const adminRoutes = require('./routes/admin');
+const bloodBankRoutes = require('./routes/bloodbanks');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -35,6 +36,7 @@ app.use('/api/donors', donorRoutes);    // available donors, contact, my status
 app.use('/api/requests', requestRoutes); // blood requests
 app.use('/api/stock', stockRoutes);     // blood stock
 app.use('/api/admin', adminRoutes);     // admin dashboard + approve user
+app.use('/api/bloodbanks', bloodBankRoutes); // blood banks (login lagbe)
 
 // Unknown URL - clear 404 message instead of an HTML page.
 app.use((req, res) => {

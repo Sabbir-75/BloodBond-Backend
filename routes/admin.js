@@ -1,5 +1,6 @@
 // BloodBond Backend - Admin routes
 // GET /api/admin/dashboard      - counts for the admin dashboard
+// GET /api/admin/donors         - shob donor, status + next eligible date shoho
 // GET /api/admin/users/pending  - users waiting for approval
 // PUT /api/admin/users/:id/approve - approve a user (Donor/Acceptor)
 
@@ -25,12 +26,32 @@ router.get('/dashboard', async (req, res) => {
       '(SELECT COUNT(*) FROM Users WHERE Status = \'Pending\') AS PendingUsers, ' +
       '(SELECT COUNT(*) FROM BloodRequests WHERE Status = \'Pending\') AS PendingRequests, ' +
       '(SELECT COUNT(*) FROM Donations) AS TotalDonations, ' +
-      '(SELECT SUM(UnitsAvailable) FROM BloodStock) AS TotalStockUnits'
+      '(SELECT SUM(UnitsAvailable) FROM vw_TotalStockByGroup) AS TotalStockUnits'
     );
     res.json(result.recordset[0]);
   } catch (err) {
     console.error('Dashboard error:', err.message);
     res.status(500).json({ message: 'Dashboard ana gelo na.' });
+  }
+});
+
+// All donors - Admin only. Shob donor: status, next eligible date shoho.
+// Pending donor-o asbe (UserStatus diye bojha jabe).
+router.get('/donors', async (req, res) => {
+  try {
+    const pool = await getPool();
+    const result = await pool.request().query(
+      'SELECT d.DonorID, u.FullName, u.Phone, u.Email, u.Occupation, ' +
+      'u.Division, u.District, u.Upazila, u.Status AS UserStatus, ' +
+      'd.BloodGroup, d.AvailabilityStatus, d.LastDonationDate, ' +
+      'dbo.fn_GetNextEligibleDate(d.DonorID) AS NextEligibleDate, ' +
+      'dbo.fn_IsDonorEligible(d.DonorID) AS IsEligible ' +
+      'FROM Donors d JOIN Users u ON u.UserID = d.DonorID ORDER BY u.FullName'
+    );
+    res.json(result.recordset);
+  } catch (err) {
+    console.error('Admin donors error:', err.message);
+    res.status(500).json({ message: 'Donor list ana gelo na.' });
   }
 });
 
