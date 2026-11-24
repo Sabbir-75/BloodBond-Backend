@@ -46,7 +46,7 @@ router.get('/available', async (req, res) => {
 });
 
 // Donor contact (phone + email) - login MUST. Frontend e tel: / mailto: button
-// ei data diye banabe.
+// ei data diye banabe. Sudhu Approved + Yes/NotSure donor-er contact dibe.
 router.get('/:id/contact', auth, async (req, res) => {
   try {
     const pool = await getPool();
@@ -54,7 +54,8 @@ router.get('/:id/contact', auth, async (req, res) => {
       .input('DonorID', sql.Int, Number(req.params.id))
       .query(
         'SELECT u.FullName, u.Phone, u.Email FROM Users u ' +
-        'JOIN Donors d ON d.DonorID = u.UserID WHERE d.DonorID = @DonorID'
+        'JOIN Donors d ON d.DonorID = u.UserID WHERE d.DonorID = @DonorID ' +
+        'AND u.Status = \'Approved\' AND d.AvailabilityStatus IN (\'Yes\', \'NotSure\')'
       );
     if (result.recordset.length === 0) {
       return res.status(404).json({ message: 'Donor pai nai.' });

@@ -13,13 +13,15 @@ const router = express.Router();
 router.use(auth, requireRole('Admin'));
 
 // Dashboard counts - simple COUNT queries, no password is ever returned.
+// TotalDonors / TotalAcceptors: sudhu APPROVED user gonona hobe.
+// Pending user login korte pare na, tai se ekhono ashol donor/acceptor na.
 router.get('/dashboard', async (req, res) => {
   try {
     const pool = await getPool();
     const result = await pool.request().query(
       'SELECT ' +
-      '(SELECT COUNT(*) FROM Users WHERE Role = \'Donor\') AS TotalDonors, ' +
-      '(SELECT COUNT(*) FROM Users WHERE Role = \'Acceptor\') AS TotalAcceptors, ' +
+      '(SELECT COUNT(*) FROM Users WHERE Role = \'Donor\' AND Status = \'Approved\') AS TotalDonors, ' +
+      '(SELECT COUNT(*) FROM Users WHERE Role = \'Acceptor\' AND Status = \'Approved\') AS TotalAcceptors, ' +
       '(SELECT COUNT(*) FROM Users WHERE Status = \'Pending\') AS PendingUsers, ' +
       '(SELECT COUNT(*) FROM BloodRequests WHERE Status = \'Pending\') AS PendingRequests, ' +
       '(SELECT COUNT(*) FROM Donations) AS TotalDonations, ' +
