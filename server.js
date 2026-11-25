@@ -15,6 +15,8 @@ const requestRoutes = require('./routes/requests');
 const stockRoutes = require('./routes/stock');
 const adminRoutes = require('./routes/admin');
 const bloodBankRoutes = require('./routes/bloodbanks');
+const profileRoutes = require('./routes/profile');
+const teamRoutes = require('./routes/team');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -22,8 +24,10 @@ const PORT = process.env.PORT || 5000;
 // Middleware - every request goes through these first.
 // cors() = frontend (Step 3, localhost:3000) can call this API.
 // express.json() = read JSON bodies from POST/PUT requests.
+// limit 1mb: profile / team photo base64 (~500KB porjonto) jeno
+// 413 error na diye dhukte pare. Default 100kb chilo - chobi dhukto na.
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
 
 // Health check - quick test that the server is running (no login needed).
 app.get('/api/health', (req, res) => {
@@ -37,6 +41,8 @@ app.use('/api/requests', requestRoutes); // blood requests
 app.use('/api/stock', stockRoutes);     // blood stock
 app.use('/api/admin', adminRoutes);     // admin dashboard + approve user
 app.use('/api/bloodbanks', bloodBankRoutes); // blood banks (login lagbe)
+app.use('/api/profile', profileRoutes);  // nijer profile + chobi + password
+app.use('/api/team', teamRoutes);        // team members (GET public, baki Admin)
 
 // Unknown URL - clear 404 message instead of an HTML page.
 app.use((req, res) => {

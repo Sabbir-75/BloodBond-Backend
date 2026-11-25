@@ -14,7 +14,7 @@ const router = express.Router();
 // Role can only be Donor or Acceptor here (Admin is created by the system owner).
 // After register the account is Pending - login works only after Admin approves.
 router.post('/register', async (req, res) => {
-  const { fullName, email, password, phone, role, occupation, division, district, upazila, bloodGroup } = req.body;
+  const { fullName, email, password, phone, role, occupation, division, district, upazila, bloodGroup, photo } = req.body;
 
   // Simple validation - empty or short input is rejected with a clear message.
   if (!fullName || !email || !password || !role) {
@@ -28,6 +28,11 @@ router.post('/register', async (req, res) => {
   }
   if (role === 'Donor' && !bloodGroup) {
     return res.status(400).json({ message: 'Donor hole blood group lagbe.' });
+  }
+  // Photo OPTIONAL - dile data URI + 500KB-er vitore hote hobe.
+  const MAX_PHOTO_LENGTH = 500000;
+  if (photo && (typeof photo !== 'string' || !photo.startsWith('data:image/') || photo.length > MAX_PHOTO_LENGTH)) {
+    return res.status(400).json({ message: 'Chobi-ta thik na ba beshi boro. Choto chobi dao (JPG/PNG).' });
   }
 
   try {
@@ -51,10 +56,19 @@ router.post('/register', async (req, res) => {
     // sp_RegisterUser (Step 1, 03) creates the Users row and, for Donor,
     // also the Donors row. It returns the new UserID.
     const result = await request.execute('sp_RegisterUser');
+    const newUserId = result.output.NewUserID;
+
+    // Photo dile alada kore save koro (sp_RegisterUser-e photo-r field nai).
+    if (photo) {
+      await pool.request()
+        .input('UserID', sql.Int, newUserId)
+        .input('ProfilePhoto', sql.NVarChar(sql.MAX), photo)
+        .query('UPDATE Users SET ProfilePhoto = @ProfilePhoto WHERE UserID = @UserID');
+    }
 
     res.status(201).json({
       message: 'Register hoyeche. Admin approve korle login korte parba.',
-      userId: result.output.NewUserID,
+      userId: newUserId,
     });
   } catch (err) {
     // 2627 / 2601 = duplicate email (Email is UNIQUE in Users table)
@@ -79,7 +93,7 @@ router.post('/login', async (req, res) => {
     const pool = await getPool();
     const result = await pool.request()
       .input('Email', sql.NVarChar(150), email)
-      .query('SELECT UserID, FullName, Email, PasswordHash, Role, Status FROM Users WHERE Email = @Email');
+      .query('SELECT UserID, FullName, Email, PasswordHash, Role, Status, ProfilePhoto FROM Users WHERE Email = @Email');
 
     if (result.recordset.length === 0) {
       return res.status(401).json({ message: 'Email ba password vul.' });
@@ -102,10 +116,12 @@ router.post('/login', async (req, res) => {
       { expiresIn: '1d' }
     );
 
+    // Token-e chobi rakha hoy NA (token choto rakhte hoy) - chobi sudhu
+    // response-er user object-e jay, frontend localStorage-e rakhbe.
     res.json({
       message: 'Login hoyeche.',
       token,
-      user: { userId: user.UserID, fullName: user.FullName, email: user.Email, role: user.Role },
+      user: { userId: user.UserID, fullName: user.FullName, email: user.Email, role: user.Role, profilePhoto: user.ProfilePhoto || null },
     });
   } catch (err) {
     console.error('Login error:', err.message);
